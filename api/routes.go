@@ -26,4 +26,5 @@ func initRoutes(r *mux.Router, controllers Controllers) {
 	authenticatedRoutes := subRouter
 	authenticatedRoutes.HandleFunc("/items", handler.GetAllItems(controllers.Item)).Methods("GET")
 	authenticatedRoutes.HandleFunc("/items/{id}", handler.GetItemByID(controllers.Item)).Methods("GET")
+	authenticatedRoutes.HandleFunc("/user", handler.CreateUser(controllers.User)).Methods("POST")
 }

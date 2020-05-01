@@ -16,6 +16,9 @@ import (
 func main() {
 	fmt.Println("Starting POS API....")
 
+	// Enable line numbers in logging
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+
 	// Init config
 	conf := config.InitConfig()
 
@@ -39,6 +42,7 @@ func main() {
 // Controllers struct define list of all available controllers
 type Controllers struct {
 	Item controllers.Item
+	User controllers.User
 }
 
 func initServices(conf config.Config, dbs map[string]*sqlx.DB) Controllers {
@@ -47,14 +51,21 @@ func initServices(conf config.Config, dbs map[string]*sqlx.DB) Controllers {
 	itemRepo := repository.NewItem(repository.ItemRepoParam{
 		DB: dbs["stone_work"],
 	})
+	userRepo := repository.NewUser(repository.UserRepoParam{
+		DB: dbs["stone_work"],
+	})
 
 	// Init all controllers
 	itemController := controllers.NewItem(controllers.ItemControllerParam{
 		ItemRP: itemRepo,
 	})
+	userController := controllers.NewUser(controllers.UserControllerParam{
+		UserRP: userRepo,
+	})
 
 	return Controllers{
 		Item: itemController,
+		User: userController,
 	}
 }
 
