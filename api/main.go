@@ -26,10 +26,10 @@ func main() {
 	databases := initDatabase(conf)
 
 	// Init services
-	controllers := initServices(conf, databases)
+	services := initServices(databases)
 
 	router := mux.NewRouter()
-	initRoutes(router, controllers)
+	initRoutes(router, services)
 
 	fmt.Printf("POS API is running on port %s\n", conf.Main.APIPort)
 	srv := &http.Server{
@@ -45,7 +45,7 @@ type Controllers struct {
 	User controllers.User
 }
 
-func initServices(conf config.Config, dbs map[string]*sqlx.DB) Controllers {
+func initServices(dbs map[string]*sqlx.DB) Controllers {
 	fmt.Println("Init services...")
 	// Init all repository
 	itemRepo := repository.NewItem(repository.ItemRepoParam{
