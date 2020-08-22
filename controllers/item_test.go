@@ -1,6 +1,7 @@
 package controllers_test
 
 import (
+	"github.com/golang/mock/gomock"
 	"testing"
 	"time"
 
@@ -11,24 +12,34 @@ import (
 )
 
 func TestGetAll(t *testing.T) {
+	mockController := gomock.NewController(t)
+	defer mockController.Finish()
+
 	now := time.Now()
 	tcs := []struct {
 		name            string
 		itemRP          repository.ItemRepo
+		mockItemRP      func() repository.ItemRepo
 		expectedResults []entity.Item
 	}{
 		{
 			name: "Empty result",
-			itemRP: &fakeItemRepo{
-				GetAllResults: []entity.Item{},
+			mockItemRP: func() repository.ItemRepo {
+				itemRepo := repository.NewMockItemRepo(mockController)
+
+				itemRepo.EXPECT().GetAll().Return([]entity.Item{})
+
+				return itemRepo
 			},
 			expectedResults: []entity.Item{},
 		},
 		{
 			name: "Result is not empty",
-			itemRP: &fakeItemRepo{
-				GetAllResults: []entity.Item{
-					entity.Item{
+			mockItemRP: func() repository.ItemRepo {
+				itemRepo := repository.NewMockItemRepo(mockController)
+
+				response := []entity.Item{
+					{
 						CategoryID:   1,
 						BrandID:      1,
 						Code:         "X",
@@ -43,10 +54,13 @@ func TestGetAll(t *testing.T) {
 						CreatedAt:    now,
 						UpdatedAt:    now,
 					},
-				},
+				}
+				itemRepo.EXPECT().GetAll().Return(response)
+
+				return itemRepo
 			},
 			expectedResults: []entity.Item{
-				entity.Item{
+				{
 					CategoryID:   1,
 					BrandID:      1,
 					Code:         "X",
@@ -68,7 +82,7 @@ func TestGetAll(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			param := controllers.ItemControllerParam{
-				ItemRP: tc.itemRP,
+				ItemRP: tc.mockItemRP(),
 			}
 			controller := controllers.NewItem(param)
 			results := controller.GetAll()
@@ -79,23 +93,32 @@ func TestGetAll(t *testing.T) {
 }
 
 func TestGetByID(t *testing.T) {
+	mockController := gomock.NewController(t)
+	defer mockController.Finish()
+
 	now := time.Now()
 	tcs := []struct {
 		name            string
-		itemRP          repository.ItemRepo
+		mockItemRP      func() repository.ItemRepo
 		expectedResults entity.Item
 	}{
 		{
 			name: "Empty result",
-			itemRP: &fakeItemRepo{
-				GetByIDResult: entity.Item{},
+			mockItemRP: func() repository.ItemRepo {
+				itemRepo := repository.NewMockItemRepo(mockController)
+
+				itemRepo.EXPECT().GetByID(1).Return(entity.Item{})
+
+				return itemRepo
 			},
 			expectedResults: entity.Item{},
 		},
 		{
 			name: "Result is not empty",
-			itemRP: &fakeItemRepo{
-				GetByIDResult: entity.Item{
+			mockItemRP: func() repository.ItemRepo {
+				itemRepo := repository.NewMockItemRepo(mockController)
+
+				response := entity.Item{
 					CategoryID:   1,
 					BrandID:      1,
 					Code:         "X",
@@ -109,7 +132,10 @@ func TestGetByID(t *testing.T) {
 					UpdatedBy:    "Wewe",
 					CreatedAt:    now,
 					UpdatedAt:    now,
-				},
+				}
+				itemRepo.EXPECT().GetByID(1).Return(response)
+
+				return itemRepo
 			},
 			expectedResults: entity.Item{
 				CategoryID:   1,
@@ -132,7 +158,7 @@ func TestGetByID(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			param := controllers.ItemControllerParam{
-				ItemRP: tc.itemRP,
+				ItemRP: tc.mockItemRP(),
 			}
 			controller := controllers.NewItem(param)
 			results := controller.GetByID(1)

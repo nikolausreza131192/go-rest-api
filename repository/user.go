@@ -15,7 +15,7 @@ import (
 
 // UserRepo define the interface for user repository
 type UserRepo interface {
-	GetByUsername(username string) entity.User
+	GetByUsername(username string) (entity.User, error)
 	GetUserPassword(username string) (string, error)
 	CreateUser(user entity.User) (string, error)
 }
@@ -39,19 +39,29 @@ func NewUser(param UserRepoParam) UserRepo {
 }
 
 // GetByUsername return user by specified username
-func (r *userRepo) GetByUsername(username string) entity.User {
+func (r *userRepo) GetByUsername(username string) (entity.User, error) {
 	result := entity.User{}
 	row := r.db.QueryRowx(`
-		SELECT id, nama, username, password, email, role, status, created_by, updated_by, created_at, updated_at 
+		SELECT 
+			id, 
+			nama, 
+			username, 
+			COALESCE(email, '') as email, 
+			role, 
+			status, 
+			created_by, 
+			updated_by, 
+			created_at, 
+			updated_at 
 		FROM m_user 
 		WHERE username = ?
 	`, username)
 	if err := row.StructScan(&result); err != nil {
 		log.Println("GetByUsername Error struct scan", username, err)
-		return result
+		return result, err
 	}
 
-	return result
+	return result, nil
 }
 
 // GetUserPassword return password of specified user

@@ -22,6 +22,7 @@ func TestGetByUsername(t *testing.T) {
 		expectedQuery  func()
 		ID             int
 		expectedResult entity.User
+		expectError    bool
 	}{
 		{
 			name: "Get from DB success",
@@ -51,6 +52,7 @@ func TestGetByUsername(t *testing.T) {
 			},
 			ID:             2,
 			expectedResult: entity.User{},
+			expectError:    true,
 		},
 	}
 
@@ -61,10 +63,15 @@ func TestGetByUsername(t *testing.T) {
 				DB: mockDB,
 			}
 			repo := repository.NewUser(repoParam)
-			result := repo.GetByUsername("admin")
+			result, err := repo.GetByUsername("admin")
 
 			assert.Nil(t, mock.ExpectationsWereMet())
 			assert.Equal(t, tc.expectedResult, result)
+			if tc.expectError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
 		})
 	}
 }

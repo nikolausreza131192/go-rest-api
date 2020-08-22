@@ -13,6 +13,7 @@ import (
 type Config struct {
 	Main     Main
 	Database map[string]Database
+	Auth     JWTConfig
 }
 
 // Main define app main configuration
@@ -28,14 +29,20 @@ type Database struct {
 	Name     string
 }
 
+type JWTConfig struct {
+	SecretToken   string
+	SigningMethod string
+	LoginTime     string // in minute
+}
+
 // InitConfig Initialize app configuration
 func InitConfig() Config {
 	fmt.Println("Init config...")
 
-	//Load environmenatal variables
-	err := godotenv.Load("../.env")
+	// Load environment variables
+	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal("Error reading .env file")
+		log.Fatal("Error reading .env file", err)
 	}
 
 	return Config{
@@ -49,6 +56,11 @@ func InitConfig() Config {
 				User:     os.Getenv("DB_USERNAME"),
 				Password: os.Getenv("DB_PASSWORD"),
 			},
+		},
+		Auth: JWTConfig{
+			SigningMethod: os.Getenv("AUTH_SIGNING_METHOD"),
+			SecretToken:   os.Getenv("AUTH_SECRET_TOKEN"),
+			LoginTime:     os.Getenv("AUTH_LOGIN_TIME"),
 		},
 	}
 }

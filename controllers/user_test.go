@@ -2,6 +2,7 @@ package controllers_test
 
 import (
 	"errors"
+	"github.com/golang/mock/gomock"
 	"testing"
 
 	"github.com/nikolausreza131192/pos/controllers"
@@ -11,19 +12,26 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
+	mockController := gomock.NewController(t)
+	defer mockController.Finish()
+
 	tcs := []struct {
 		name                   string
 		nameParam              string
 		usernameParam          string
 		emailParam             string
 		roleParam              string
-		userRepo               repository.UserRepo
+		mockUserRepo           func() repository.UserRepo
 		expectedPasswordResult string
 		expectedError          error
 	}{
 		{
-			name:          "Invalid parameter: empty name",
-			userRepo:      &fakeUserRepo{},
+			name: "Invalid parameter: empty name",
+			mockUserRepo: func() repository.UserRepo {
+				userRepo := repository.NewMockUserRepo(mockController)
+
+				return userRepo
+			},
 			expectedError: errors.New("Invalid parameter"),
 		},
 		{
@@ -32,10 +40,14 @@ func TestCreateUser(t *testing.T) {
 			usernameParam: "foobar",
 			emailParam:    "foo@bar.com",
 			roleParam:     "admin",
-			userRepo: &fakeUserRepo{
-				CreateUserError: errors.New("Some error"),
+			mockUserRepo: func() repository.UserRepo {
+				userRepo := repository.NewMockUserRepo(mockController)
+
+				userRepo.EXPECT().CreateUser(gomock.Any()).Return("", errors.New("test error"))
+
+				return userRepo
 			},
-			expectedError: errors.New("Some error"),
+			expectedError: errors.New("test error"),
 		},
 		{
 			name:          "Successfully create user",
@@ -43,8 +55,12 @@ func TestCreateUser(t *testing.T) {
 			usernameParam: "foobar",
 			emailParam:    "foo@bar.com",
 			roleParam:     "admin",
-			userRepo: &fakeUserRepo{
-				CreateUserResult: "hashedrandompassword",
+			mockUserRepo: func() repository.UserRepo {
+				userRepo := repository.NewMockUserRepo(mockController)
+
+				userRepo.EXPECT().CreateUser(gomock.Any()).Return("hashedrandompassword", nil)
+
+				return userRepo
 			},
 			expectedPasswordResult: "hashedrandompassword",
 		},
@@ -53,7 +69,7 @@ func TestCreateUser(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			param := controllers.UserControllerParam{
-				UserRP: tc.userRepo,
+				UserRP: tc.mockUserRepo(),
 			}
 			controller := controllers.NewUser(param)
 			password, err := controller.CreateUser(tc.nameParam, tc.usernameParam, tc.emailParam, tc.roleParam)

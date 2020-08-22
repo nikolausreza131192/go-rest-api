@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/nikolausreza131192/pos/entity"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
@@ -25,8 +27,11 @@ func main() {
 	// Init database
 	databases := initDatabase(conf)
 
+	// Init JWT Token Library
+	jwtTokenLib := initJWTToken(conf.Auth)
+
 	// Init services
-	services := initServices(databases)
+	services := initServices(conf, databases, jwtTokenLib)
 
 	router := mux.NewRouter()
 	initRoutes(router, services)
@@ -43,9 +48,10 @@ func main() {
 type Controllers struct {
 	Item controllers.Item
 	User controllers.User
+	Auth controllers.Auth
 }
 
-func initServices(dbs map[string]*sqlx.DB) Controllers {
+func initServices(conf config.Config, dbs map[string]*sqlx.DB, jwtTokenLib entity.JWTToken) Controllers {
 	fmt.Println("Init services...")
 	// Init all repository
 	itemRepo := repository.NewItem(repository.ItemRepoParam{
@@ -53,6 +59,10 @@ func initServices(dbs map[string]*sqlx.DB) Controllers {
 	})
 	userRepo := repository.NewUser(repository.UserRepoParam{
 		DB: dbs["stone_work"],
+	})
+	authRepo := repository.NewAuth(repository.AuthRepoParam{
+		SecretToken: conf.Auth.SecretToken,
+		JWTTokenLib: jwtTokenLib,
 	})
 
 	// Init all controllers
@@ -62,10 +72,20 @@ func initServices(dbs map[string]*sqlx.DB) Controllers {
 	userController := controllers.NewUser(controllers.UserControllerParam{
 		UserRP: userRepo,
 	})
+	loginTime, err := strconv.Atoi(conf.Auth.LoginTime)
+	if err != nil {
+		log.Fatalln("func initServices fail to parse login time to int", err)
+	}
+	authController := controllers.NewAuth(controllers.AuthControllerParam{
+		AuthRP:    authRepo,
+		UserRP:    userRepo,
+		LoginTime: loginTime,
+	})
 
 	return Controllers{
 		Item: itemController,
 		User: userController,
+		Auth: authController,
 	}
 }
 
