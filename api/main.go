@@ -33,6 +33,7 @@ func main() {
 	// Init services
 	services := initServices(conf, databases, jwtTokenLib)
 
+	// Init routes
 	router := mux.NewRouter()
 	initRoutes(router, services)
 

@@ -59,3 +59,18 @@ func (mr *MockJWTTokenMockRecorder) SignedString(token interface{}) *gomock.Call
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignedString", reflect.TypeOf((*MockJWTToken)(nil).SignedString), token)
 }
+
+// ParseToken mocks base method
+func (m *MockJWTToken) ParseToken(token, secretKey string) (entity.TokenClaims, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParseToken", token, secretKey)
+	ret0, _ := ret[0].(entity.TokenClaims)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParseToken indicates an expected call of ParseToken
+func (mr *MockJWTTokenMockRecorder) ParseToken(token, secretKey interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseToken", reflect.TypeOf((*MockJWTToken)(nil).ParseToken), token, secretKey)
+}

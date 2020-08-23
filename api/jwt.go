@@ -30,3 +30,11 @@ func (t *token) SetClaims(claims entity.TokenClaims) {
 func (t *token) SignedString(method []byte) (string, error) {
 	return t.jwtToken.SignedString(method)
 }
+
+func (t *token) ParseToken(token, secretKey string) (entity.TokenClaims, error) {
+	var tokenClaims entity.TokenClaims
+	_, err := jwt.ParseWithClaims(token, &tokenClaims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
+	})
+	return tokenClaims, err
+}

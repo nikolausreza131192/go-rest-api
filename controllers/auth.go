@@ -15,6 +15,8 @@ import (
 // User control all process related with user
 type Auth interface {
 	Login(username, password string) (entity.LoginResponse, error)
+	GetUserFromToken(token string) (entity.User, error)
+	CheckPermissionAccess(user entity.User, permissionName string) bool
 }
 
 type authController struct {
@@ -71,7 +73,7 @@ func (c *authController) Login(username, password string) (entity.LoginResponse,
 			}
 			return response, nil
 		}
-		log.Println("func Login Error get user", username, err)
+		log.Println("Login Error get user", username, err)
 		response = entity.LoginResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
@@ -91,7 +93,7 @@ func (c *authController) Login(username, password string) (entity.LoginResponse,
 			}
 			return response, nil
 		}
-		log.Println("func Login Error get password", user.Username, err)
+		log.Println("Login Error get password", user.Username, err)
 		response = entity.LoginResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
@@ -111,7 +113,7 @@ func (c *authController) Login(username, password string) (entity.LoginResponse,
 			}
 			return response, nil
 		}
-		log.Println("func Login Error compare password", user.Username, err)
+		log.Println("Login Error compare password", user.Username, err)
 		response = entity.LoginResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
@@ -129,7 +131,7 @@ func (c *authController) Login(username, password string) (entity.LoginResponse,
 		},
 	})
 	if err != nil {
-		log.Println("func Login Error generate token", user.Username, err)
+		log.Println("Login Error generate token", user.Username, err)
 		response = entity.LoginResponse{
 			Success: false,
 			Code:    http.StatusInternalServerError,
@@ -147,4 +149,39 @@ func (c *authController) Login(username, password string) (entity.LoginResponse,
 	}
 
 	return response, nil
+}
+
+func (c *authController) GetUserFromToken(token string) (entity.User, error) {
+	var user entity.User
+	if token == "" {
+		log.Println("AuthenticateRequest empty token")
+		return user, errors.New("empty token")
+	}
+
+	// Parse token to get token claims
+	tokenClaims, err := c.authRP.ParseToken(token)
+	if err != nil {
+		log.Println("AuthenticateRequest error parse token from repository", err)
+		return user, err
+	}
+
+	// Get user by username
+	user, err = c.userRP.GetByUsername(tokenClaims.Username)
+	if err != nil {
+		log.Println("AuthenticateRequest error get user from repository", tokenClaims.Username, err)
+		return user, err
+	}
+
+	return user, nil
+}
+
+func (c *authController) CheckPermissionAccess(user entity.User, permissionName string) bool {
+	authorizedPermissions := c.authRP.GetPermissionsByRole(user.Role)
+	for _, permission := range authorizedPermissions {
+		if permission == permissionName {
+			return true
+		}
+	}
+
+	return false
 }

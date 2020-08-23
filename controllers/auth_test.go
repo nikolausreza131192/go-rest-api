@@ -3,6 +3,7 @@ package controllers_test
 import (
 	"database/sql"
 	"errors"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/golang/mock/gomock"
 	"github.com/nikolausreza131192/pos/controllers"
 	"github.com/nikolausreza131192/pos/entity"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestLogin(t *testing.T) {
@@ -317,6 +319,143 @@ func TestLogin(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 			}
+		})
+	}
+}
+
+func TestAuthenticateRequest(t *testing.T) {
+	mockController := gomock.NewController(t)
+	defer mockController.Finish()
+
+	tcs := []struct {
+		name           string
+		token          string
+		mockAuthRepo   func() repository.AuthRepo
+		mockUserRepo   func() repository.UserRepo
+		expectedResult entity.User
+		expectedError  error
+	}{
+		// Empty token
+		{
+			name:  "Empty token",
+			token: "",
+			mockAuthRepo: func() repository.AuthRepo {
+				authRepo := repository.NewMockAuthRepo(mockController)
+
+				return authRepo
+			},
+			mockUserRepo: func() repository.UserRepo {
+				userRepo := repository.NewMockUserRepo(mockController)
+
+				return userRepo
+			},
+			expectedResult: entity.User{},
+			expectedError:  errors.New("empty token"),
+		},
+		// Error parse token from repository
+		{
+			name:  "Error parse token from repository",
+			token: "tokenfromheader",
+			mockAuthRepo: func() repository.AuthRepo {
+				authRepo := repository.NewMockAuthRepo(mockController)
+
+				authRepo.EXPECT().ParseToken("tokenfromheader").Return(entity.TokenClaims{}, errors.New("some error"))
+
+				return authRepo
+			},
+			mockUserRepo: func() repository.UserRepo {
+				userRepo := repository.NewMockUserRepo(mockController)
+
+				return userRepo
+			},
+			expectedResult: entity.User{},
+			expectedError:  errors.New("some error"),
+		},
+		// User not found in our DB
+		{
+			name:  "User not found in our DB",
+			token: "tokenfromheader",
+			mockAuthRepo: func() repository.AuthRepo {
+				authRepo := repository.NewMockAuthRepo(mockController)
+
+				authRepo.EXPECT().ParseToken("tokenfromheader").Return(entity.TokenClaims{
+					Name:     "Foo Bar",
+					Username: "foobar",
+					StandardClaims: jwt.StandardClaims{
+						ExpiresAt: time.Date(2020, 11, 13, 0, 0, 0, 0, time.UTC).Unix(),
+					},
+				}, nil)
+
+				return authRepo
+			},
+			mockUserRepo: func() repository.UserRepo {
+				userRepo := repository.NewMockUserRepo(mockController)
+
+				userRepo.EXPECT().GetByUsername("foobar").Return(entity.User{}, sql.ErrNoRows)
+
+				return userRepo
+			},
+			expectedResult: entity.User{},
+			expectedError:  sql.ErrNoRows,
+		},
+		// Successfully get user from token
+		{
+			name:  "Successfully get user from token",
+			token: "tokenfromheader",
+			mockAuthRepo: func() repository.AuthRepo {
+				authRepo := repository.NewMockAuthRepo(mockController)
+
+				authRepo.EXPECT().ParseToken("tokenfromheader").Return(entity.TokenClaims{
+					Name:     "Foo Bar",
+					Username: "foobar",
+					StandardClaims: jwt.StandardClaims{
+						ExpiresAt: time.Date(2020, 11, 13, 0, 0, 0, 0, time.UTC).Unix(),
+					},
+				}, nil)
+
+				return authRepo
+			},
+			mockUserRepo: func() repository.UserRepo {
+				userRepo := repository.NewMockUserRepo(mockController)
+
+				userRepo.EXPECT().GetByUsername("foobar").Return(entity.User{
+					ID:        100,
+					Username:  "foobar",
+					Name:      "Foo Bar",
+					Email:     "",
+					Role:      "Super Admin",
+					Status:    1,
+					CreatedBy: "Test",
+					UpdatedBy: "Test",
+				}, nil)
+
+				return userRepo
+			},
+			expectedResult: entity.User{
+				ID:        100,
+				Username:  "foobar",
+				Name:      "Foo Bar",
+				Email:     "",
+				Role:      "Super Admin",
+				Status:    1,
+				CreatedBy: "Test",
+				UpdatedBy: "Test",
+			},
+			expectedError: nil,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			authController := controllers.NewAuth(controllers.AuthControllerParam{
+				UserRP: tc.mockUserRepo(),
+				AuthRP: tc.mockAuthRepo(),
+			})
+
+			result, err := authController.GetUserFromToken(tc.token)
+
+			assert.Equal(t, tc.expectedResult, result)
+			assert.Equal(t, tc.expectedError, err)
 		})
 	}
 }

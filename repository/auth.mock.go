@@ -47,3 +47,18 @@ func (mr *MockAuthRepoMockRecorder) GenerateJWTToken(claims interface{}) *gomock
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateJWTToken", reflect.TypeOf((*MockAuthRepo)(nil).GenerateJWTToken), claims)
 }
+
+// ParseToken mocks base method
+func (m *MockAuthRepo) ParseToken(token string) (entity.TokenClaims, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParseToken", token)
+	ret0, _ := ret[0].(entity.TokenClaims)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParseToken indicates an expected call of ParseToken
+func (mr *MockAuthRepoMockRecorder) ParseToken(token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseToken", reflect.TypeOf((*MockAuthRepo)(nil).ParseToken), token)
+}
