@@ -27,7 +27,7 @@ func TestGetByUsername(t *testing.T) {
 		{
 			name: "Get from DB success",
 			expectedQuery: func() {
-				rows := sqlmock.NewRows([]string{"id", "nama", "username", "email", "role", "status", "created_by", "updated_by", "created_at", "updated_at"}).AddRow(1, "Wewe", "wewe", "nikolaus.reza@tokopedia.com", "admin", 1, "wewe", "wewe", now, now)
+				rows := sqlmock.NewRows([]string{"id", "nama", "username", "email", "role", "status", "created_by", "updated_by", "created_at", "updated_at"}).AddRow(1, "Wewe", "wewe", "nikolaus.reza@gmail.com", "admin", 1, "wewe", "wewe", now, now)
 				mock.ExpectQuery("SELECT (.+) FROM m_user").WillReturnRows(rows)
 			},
 			ID: 2,
@@ -35,7 +35,7 @@ func TestGetByUsername(t *testing.T) {
 				ID:        1,
 				Name:      "Wewe",
 				Username:  "wewe",
-				Email:     "nikolaus.reza@tokopedia.com",
+				Email:     "nikolaus.reza@gmail.com",
 				Role:      "admin",
 				Status:    1,
 				CreatedBy: "wewe",
